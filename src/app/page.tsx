@@ -1,95 +1,117 @@
+"use client";
+
+import {
+  Form,
+  Input,
+  Button,
+  Card,
+  Typography,
+  Flex,
+  Space,
+  message,
+} from "antd";
+import { EyeInvisibleOutlined, EyeTwoTone } from "@ant-design/icons";
 import Image from "next/image";
-import styles from "./page.module.css";
+import { useRouter } from "next/navigation";
+import { useAuthStore, UserState } from "@/store/useAuthStore";
+import React from "react";
 
-export default function Home() {
+const { Title, Text, Link } = Typography;
+
+export default function LoginPage() {
+  const router = useRouter();
+  const user: UserState | undefined = useAuthStore(
+    (state: { user: UserState | undefined }) => state.user
+  );
+  const login = useAuthStore(
+    (state: { login: (email: string, password: string) => Promise<boolean> }) =>
+      state.login
+  );
+  const [loading, setLoading] = React.useState(false);
+  const [loginSuccess, setLoginSuccess] = React.useState(false);
+
+  React.useEffect(() => {
+    if (loginSuccess && user) {
+      if (user.isAdmin) {
+        router.push("/dashboard/admin/agendamentos");
+      } else {
+        router.push("/dashboard/cliente/agendamentos");
+      }
+    }
+  }, [loginSuccess, user, router]);
+
+  const onFinish = async (values: { email: string; password: string }) => {
+    try {
+      setLoading(true);
+      const { email, password } = values;
+      const response = await login(email, password);
+      if (response) {
+        setLoginSuccess(true);
+      } else {
+        message.error("Falha no login. Verifique suas credenciais.");
+      }
+    } catch (error) {
+      message.error("Erro ao fazer login. Tente novamente.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol>
-          <li>
-            Get started by editing <code>src/app/page.tsx</code>.
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+    <Flex vertical align="center" gap="large">
+      <Space direction="vertical" align="center" size="large">
+        <Image src="/next.svg" alt="Logo da Empresa" width={80} height={40} />
+        <Title level={3}>Entre na sua conta</Title>
+      </Space>
 
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+      <Card style={{ width: 380 }}>
+        <Form layout="vertical" onFinish={onFinish} requiredMark={false}>
+          <Form.Item
+            label="E-mail"
+            name="email"
+            rules={[
+              { required: true, message: "Por favor, informe seu e-mail." },
+              { type: "email", message: "O e-mail informado não é válido." },
+            ]}
           >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
+            <Input placeholder="ex: seuemail@dominio.com" />
+          </Form.Item>
+
+          <Form.Item
+            label="Senha de acesso"
+            name="password"
+            rules={[
+              { required: true, message: "Por favor, informe sua senha." },
+            ]}
+          >
+            <Input.Password
+              placeholder="************"
+              iconRender={(visible) =>
+                visible ? <EyeTwoTone /> : <EyeInvisibleOutlined />
+              }
             />
-            Deploy now
-          </a>
-          <a
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-            className={styles.secondary}
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className={styles.footer}>
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+          </Form.Item>
+
+          <Form.Item style={{ marginBottom: 16 }}>
+            <Button
+              type="primary"
+              htmlType="submit"
+              block
+              style={{ background: "black", borderColor: "black" }}
+              loading={loading}
+            >
+              Acessar conta
+            </Button>
+          </Form.Item>
+
+          <Flex justify="space-between" align="center">
+            <Text type="secondary">Não tem uma conta?</Text>
+            <Link href="/cadastro" strong>
+              Cadastre-se
+            </Link>
+          </Flex>
+        </Form>
+      </Card>
+    </Flex>
   );
 }
